@@ -33,12 +33,6 @@ Once it's up, visit [http://localhost:3000](http://localhost:3000) in your brows
 
 ## 📦 Architecture
 
-```
-[Frontend] → [LiveKit Room] ← [Agent]
-                        ↘        ↙
-              [Whisper]   [Ollama]   [Kokoro]
-```
-
 Each service is containerized and communicates over a shared Docker network:
 - `livekit`: WebRTC signaling server
 - `agent`: Custom Python agent with LiveKit SDK
