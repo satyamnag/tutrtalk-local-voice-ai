@@ -91,7 +91,7 @@ The services will restart and build fresh containers.
 
 - Docker + Docker Compose
 - No GPU required (uses CPU-based models)
-- Recommended RAM: 18GB+
+- Recommended RAM: 12GB+
 
 ## 🙌 Credits
 
