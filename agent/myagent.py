@@ -5,21 +5,63 @@ from dotenv import load_dotenv
 from livekit.agents import JobContext, WorkerOptions, cli
 from livekit.agents.voice import Agent, AgentSession
 from livekit.plugins import openai, silero, groq
+from livekit.agents import ChatContext, ChatMessage
+from sentence_transformers import SentenceTransformer
+import faiss
+import asyncio
+from functools import partial
 
 load_dotenv()
 
 logger = logging.getLogger("local-agent")
 logger.setLevel(logging.INFO)
 
-class SimpleAgent(Agent):
+# load a small embedding model once
+embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# load all your docs
+docs = []
+docs_dir = os.path.join(os.path.dirname(__file__), "docs")
+if os.path.exists(docs_dir):
+    for fn in os.listdir(docs_dir):
+        with open(os.path.join(docs_dir, fn), encoding="utf-8") as f:
+            docs.append(f.read())
+
+# embed and build FAISS index
+if docs:
+    embs = embed_model.encode(docs, show_progress_bar=False)
+    dim = embs.shape[1]
+    index = faiss.IndexFlatL2(dim)
+    index.add(embs)
+else:
+    dim = embed_model.get_sentence_embedding_dimension()
+    index = faiss.IndexFlatL2(dim)
+    logger.warning("No documents found in docs directory. RAG will return empty context.")
+
+async def rag_lookup(query: str) -> str:
+    """Perform RAG lookup for a given query"""
+    loop = asyncio.get_running_loop()
+
+    q_emb = await loop.run_in_executor(None, lambda: embed_model.encode([query]))
+    D, I = await loop.run_in_executor(None, lambda: index.search(q_emb, min(3, index.ntotal)))
+
+    ctx = ""
+    if index.ntotal > 0:
+        ctx = "\n\n---\n\n".join(docs[i] for i in I[0])
+
+    print(f"RAG content: {ctx}")
+
+    return ctx
+
+class LocalAgent(Agent):
     def __init__(self) -> None:
         stt = openai.STT(base_url="http://whisper:80/v1", model="Systran/faster-whisper-small")
-        llm = openai.LLM(base_url="http://ollama:11434/v1", model="gemma3:4b")
+        llm = openai.LLM(base_url="http://ollama:11434/v1", model="gemma3:4b", timeout=30)
         tts = groq.TTS(base_url="http://kokoro:8880/v1", model="kokoro", voice="af_nova")
         vad_inst = silero.VAD.load()
         super().__init__(
             instructions="""
-                You are a helpful agent. When the user speaks, you listen and respond.
+                You are a helpful agent.
                 Never ever use emojis. Everything you say should be in plain text, since it will be spoken out loud.
                 Keep your responses short and concise. Never more than a sentence or two.
             """,
@@ -112,15 +154,26 @@ class SimpleAgent(Agent):
     async def on_vad_event(self, event):
         None
 
+    async def on_user_turn_completed(
+        self, turn_ctx: ChatContext, new_message: ChatMessage,
+    ) -> None:
+        rag_content = await rag_lookup(new_message.text_content)
+        if rag_content:
+            turn_ctx.add_message(
+                role="user",
+                content=f"Additional information relevant to the user's next message: {rag_content}"
+            )
+            logger.info(f"Added RAG content to chat context: {rag_content}")
+
 async def entrypoint(ctx: JobContext):
     await ctx.connect()
 
     session = AgentSession()
 
     await session.start(
-        agent=SimpleAgent(),
+        agent=LocalAgent(),
         room=ctx.room
     )
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, job_memory_warn_mb=1500))
