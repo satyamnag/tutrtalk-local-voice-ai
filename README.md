@@ -1,7 +1,7 @@
 <div align="center">
   <img src="./voice-assistant-frontend/.github/assets/app-icon.png" alt="App Icon" width="80" />
   <h1>🧠 Local Voice Agent</h1>
-  <p>A full-stack, Dockerized AI voice assistant with speech, text, and voice synthesis powered by <a href="https://livekit.io/">LiveKit</a>.</p>
+  <p>A full-stack, Dockerized AI voice assistant with speech, text, and voice synthesis powered by <a href="https://livekit.io/">LiveKit</a>. You can see a demo of the app in action <a href="https://livekit.io/">here</a></p>.
   <img src="./voice-assistant-frontend/.github/assets/frontend-screenshot.jpeg" alt="Screenshot" width="600" />
 </div>
 
