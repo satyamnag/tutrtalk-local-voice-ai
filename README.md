@@ -15,6 +15,7 @@ This repo contains everything needed to run a real-time AI voice assistant local
 - 🧠 **Ollama** for running local LLMs
 - 🗣️ **Kokoro** for TTS voice synthesis
 - 👂 **Whisper (via VoxBox)** for speech-to-text
+- 🔍 **RAG** powered by Sentence Transformers and FAISS
 - 💬 **Next.js + Tailwind** frontend UI
 - 🐳 Fully containerized via Docker Compose
 
@@ -48,6 +49,10 @@ Your agent lives in [`agent/myagent.py`](./agent/myagent.py). It uses:
 - `openai.LLM` → routes to Ollama
 - `groq.TTS` → routes to Kokoro
 - `silero.VAD` → for voice activity detection
+- `SentenceTransformer` → embeds documents and queries for RAG
+- `FAISS` → performs similarity search for knowledge retrieval
+
+The agent supports Retrieval-Augmented Generation (RAG) by loading documents from the `agent/docs` directory. These documents are embedded using the all-MiniLM-L6-v2 model and indexed using FAISS for fast similarity search. During conversations, relevant document snippets are automatically retrieved to enhance the agent's responses.
 
 All metrics from each component are logged for debugging.
 
