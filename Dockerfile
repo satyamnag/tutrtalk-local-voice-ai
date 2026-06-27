@@ -64,7 +64,7 @@ COPY local_voice_ai ./local_voice_ai
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system --index-strategy unsafe-best-match \
         --extra-index-url ${TORCH_INDEX_URL} \
-        ".[ml,whisper]"
+        ".[ml]"
 
 # Drop in the binaries from upstream images.
 #

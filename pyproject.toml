@@ -36,6 +36,7 @@ ml = [
     "nemo-toolkit[asr]",
     "kokoro>=0.9",
     "huggingface_hub",
+    "faster-whisper",
 ]
 # Whisper fallback (vox-box) — only when STT_PROVIDER=whisper.
 whisper = [

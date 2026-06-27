@@ -51,6 +51,8 @@ def _build_specs(cfg: Config) -> list[ChildSpec]:
                     # reach, so media never connects and the room never joins.
                     "--udp-port", str(cfg.livekit_udp_port),
                     "--node-ip", cfg.livekit_node_ip,
+                    # Pass the API keys using the --keys flag (format "key: secret")
+                    "--keys", f"{cfg.livekit_api_key}: {cfg.livekit_api_secret}",
                 ],
                 ready_url=None,  # LiveKit dev server has no consistent /health
                 ready_timeout=30.0,
@@ -81,19 +83,17 @@ def _build_specs(cfg: Config) -> list[ChildSpec]:
     # --- STT (Nemotron or Whisper) -----------------------------------
     if cfg.manage_stt:
         if cfg.stt_provider == "whisper":
+            # Use our in-tree faster-whisper server instead of vox-box
             specs.append(
                 ChildSpec(
                     name="whisper",
                     argv=[
-                        "vox-box", "start",
-                        "--huggingface-repo-id", cfg.voxbox_hf_repo_id,
-                        "--data-dir", os.getenv("VOXBOX_DATA_DIR", "/data"),
-                        "--device", cfg.voxbox_device,
+                        py, "-m", "local_voice_ai.services.whisper.server",
                         "--host", "127.0.0.1",
                         "--port", str(cfg.stt_bind_port),
                     ],
-                    ready_url=f"http://127.0.0.1:{cfg.stt_bind_port}/v1/models",
-                    ready_timeout=600.0,
+                    ready_url=f"http://127.0.0.1:{cfg.stt_bind_port}/health",
+                    ready_timeout=300.0,  # model download on first start may take a bit
                 )
             )
         else:
