@@ -165,7 +165,7 @@ class Config:
     def agent_env(self) -> dict[str, str]:
         """Environment variables to pass to the agent worker subprocess."""
         return {
-            "LIVEKIT_URL": self.livekit_url,
+            "LIVEKIT_URL": "ws://127.0.0.1:7880",
             "LIVEKIT_API_KEY": self.livekit_api_key,
             "LIVEKIT_API_SECRET": self.livekit_api_secret,
             "LLAMA_BASE_URL": self.llama_base_url,

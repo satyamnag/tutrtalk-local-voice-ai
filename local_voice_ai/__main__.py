@@ -41,20 +41,12 @@ def _build_specs(cfg: Config) -> list[ChildSpec]:
                     "--dev",
                     "--bind", "0.0.0.0",
                     "--port", str(cfg.livekit_bind_port),
-                    # livekit-server's RTC TCP port flag is the dotted config
-                    # key --rtc.tcp_port (there is no --rtc-port flag).
                     "--rtc.tcp_port", str(cfg.livekit_rtc_port),
-                    # Pin the WebRTC UDP media port so it matches the published
-                    # container port, and advertise a host-reachable ICE address.
-                    # Without --node-ip the dev server auto-detects the container
-                    # IP (e.g. 172.x.x.x), which a browser on the host cannot
-                    # reach, so media never connects and the room never joins.
                     "--udp-port", str(cfg.livekit_udp_port),
                     "--node-ip", cfg.livekit_node_ip,
-                    # Pass the API keys using the --keys flag (format "key: secret")
                     "--keys", f"{cfg.livekit_api_key}: {cfg.livekit_api_secret}",
                 ],
-                ready_url=None,  # LiveKit dev server has no consistent /health
+                ready_url=None,
                 ready_timeout=30.0,
             )
         )
@@ -76,14 +68,13 @@ def _build_specs(cfg: Config) -> list[ChildSpec]:
                 ],
                 env={"HF_HOME": os.getenv("HF_HOME", "/models"), "XDG_CACHE_HOME": os.getenv("XDG_CACHE_HOME", "/models")},
                 ready_url=f"http://127.0.0.1:{cfg.llama_bind_port}/v1/models",
-                ready_timeout=900.0,  # first-run model download can be slow
+                ready_timeout=900.0,
             )
         )
 
     # --- STT (Nemotron or Whisper) -----------------------------------
     if cfg.manage_stt:
         if cfg.stt_provider == "whisper":
-            # Use our in-tree faster-whisper server instead of vox-box
             specs.append(
                 ChildSpec(
                     name="whisper",
@@ -93,7 +84,7 @@ def _build_specs(cfg: Config) -> list[ChildSpec]:
                         "--port", str(cfg.stt_bind_port),
                     ],
                     ready_url=f"http://127.0.0.1:{cfg.stt_bind_port}/health",
-                    ready_timeout=300.0,  # model download on first start may take a bit
+                    ready_timeout=300.0,
                 )
             )
         else:
@@ -176,7 +167,6 @@ async def _serve(cfg: Config) -> int:
 
     done, _ = await asyncio.wait({web_task, sup_task}, return_when=asyncio.FIRST_COMPLETED)
 
-    # Whatever finished first triggers a coordinated shutdown.
     uv_server.should_exit = True
     if not sup_task.done():
         await supervisor.shutdown()
@@ -194,7 +184,6 @@ async def _serve(cfg: Config) -> int:
 def _download_models(cfg: Config) -> int:
     """Pre-download VAD, turn-detector, Nemotron weights so first run is warm."""
     logger.info("downloading agent prewarm models (silero VAD, turn detector)")
-    # Reuse livekit-agents' built-in download-files command
     import subprocess
     rc = subprocess.call([sys.executable, "-m", "local_voice_ai.agent", "download-files"])
     if rc != 0:
