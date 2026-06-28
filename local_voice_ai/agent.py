@@ -18,12 +18,14 @@ from livekit.agents import (
     JobContext,
     JobProcess,
     RunContext,
-    TurnHandlingOptions,
     cli,
     function_tool,
+    TurnHandlingOptions,
 )
 from livekit.plugins import openai, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
+
+
 
 logger = logging.getLogger("agent")
 
@@ -67,7 +69,6 @@ def prewarm(proc: JobProcess) -> None:
 server.setup_fnc = prewarm
 
 
-
 @server.rtc_session()
 async def my_agent(ctx: JobContext) -> None:
     ctx.log_context_fields = {"room": ctx.room.name}
@@ -97,16 +98,18 @@ async def my_agent(ctx: JobContext) -> None:
         stt_provider, stt_model, llama_base_url, llama_model, tts_base_url,
     )
 
-    session = AgentSession(
- 	 stt=openai.STT(base_url=stt_base_url, model=stt_model, api_key=stt_api_key),
-    	llm=openai.LLM(base_url=llama_base_url, model=llama_model, api_key=llama_api_key),
-    	tts=openai.TTS(base_url=tts_base_url, model="tts-1", voice=tts_voice, api_key=tts_api_key),
-    	vad=ctx.proc.userdata["vad"],                     # Silero VAD from prewarm
-    	turn_handling=TurnHandlingOptions(
-        turn_detection=MultilingualModel(),           # multilingual turn detector
-    ),
-)
+    import os
+    os.environ["LIVEKIT_AGENTS_WORKER_LOAD_THRESHOLD"] = "0.9"
 
+    session = AgentSession(
+        stt=openai.STT(base_url=stt_base_url, model=stt_model, api_key=stt_api_key),
+        llm=openai.LLM(base_url=llama_base_url, model=llama_model, api_key=llama_api_key),
+        tts=openai.TTS(base_url=tts_base_url, model="tts-1", voice=tts_voice, api_key=tts_api_key),
+        vad=ctx.proc.userdata["vad"],
+        turn_handling=TurnHandlingOptions(
+            turn_detection=MultilingualModel(),
+        ),
+    )
     await session.start(agent=Assistant(), room=ctx.room)
     await ctx.connect()
 
