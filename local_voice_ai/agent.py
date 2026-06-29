@@ -22,8 +22,8 @@ from livekit.agents import (
     function_tool,
     TurnHandlingOptions,
 )
-from livekit.plugins import openai, silero
-
+from livekit.plugins import openai
+from livekit.agents import inference 
 
 logger = logging.getLogger("agent")
 
@@ -90,7 +90,7 @@ async def my_agent(ctx: JobContext) -> None:
         stt_provider, stt_model, llama_base_url, llama_model, tts_base_url,
     )
 
-    vad = silero.VAD.load()
+    vad = inference.VAD(model="silero")
 
     session = AgentSession(
         stt=openai.STT(base_url=stt_base_url, model=stt_model, api_key=stt_api_key),
