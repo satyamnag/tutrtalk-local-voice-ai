@@ -90,9 +90,6 @@ async def my_agent(ctx: JobContext) -> None:
         stt_provider, stt_model, llama_base_url, llama_model, tts_base_url,
     )
 
-    import os
-    os.environ["LIVEKIT_AGENTS_WORKER_LOAD_THRESHOLD"] = "0.9"
-
     vad = silero.VAD.load()
 
     session = AgentSession(
