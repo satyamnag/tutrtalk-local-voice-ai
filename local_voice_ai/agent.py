@@ -90,7 +90,11 @@ async def my_agent(ctx: JobContext) -> None:
         stt_provider, stt_model, llama_base_url, llama_model, tts_base_url,
     )
 
-    vad = inference.VAD(model="silero")
+    vad = inference.VAD(
+        model="silero",
+        min_silence_duration=0.15,
+        activation_threshold=0.3,
+    )
 
     session = AgentSession(
         stt=openai.STT(base_url=stt_base_url, model=stt_model, api_key=stt_api_key),
@@ -99,6 +103,7 @@ async def my_agent(ctx: JobContext) -> None:
         vad=vad,
         turn_handling=TurnHandlingOptions(
             turn_detection='vad',
+            preemptive_generation={"enabled": True},
         ),
     )
     await session.start(agent=Assistant(), room=ctx.room)
